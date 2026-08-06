@@ -415,10 +415,13 @@
                     if (igEmbedUrl) {
                         // Endpoint /embed/captioned/ resmi Instagram -> tampil
                         // langsung sebagai player di dalam iframe, tanpa perlu
-                        // membuka jendela/tab baru.
+                        // membuka jendela/tab baru. Tautan cadangan tetap
+                        // disediakan untuk kasus embed gagal memuat (postingan
+                        // private/dihapus, atau cookie pihak ketiga diblokir).
                         mediaHtml = `
-                            <div class="w-full bg-slate-50 border-b border-slate-100 overflow-hidden">
+                            <div class="w-full bg-slate-50 border-b border-slate-100 overflow-hidden flex flex-col items-center">
                                 <iframe src="${igEmbedUrl}" class="w-full border-0" style="min-height:560px;" loading="lazy" allow="encrypted-media" scrolling="no"></iframe>
+                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-indigo-400 hover:text-indigo-600 py-1.5">Postingan tidak tampil? Buka di Instagram &rarr;</a>
                             </div>
                         `;
                     } else {
@@ -436,9 +439,15 @@
                     if (ttEmbedUrl) {
                         // Endpoint embed/v2 resmi TikTok -> player tampil
                         // langsung di dalam iframe, tanpa membuka tab baru.
+                        // Catatan: kalau video tetap tampil hitam/kosong,
+                        // biasanya videonya dihapus/di-private-kan/dibatasi
+                        // wilayah, atau browser memblokir cookie pihak ketiga
+                        // yang dibutuhkan player TikTok untuk memuat data video.
+                        // Tautan cadangan di bawah disediakan untuk kasus itu.
                         mediaHtml = `
-                            <div class="w-full bg-slate-900 flex items-center justify-center border-b border-slate-100 overflow-hidden">
+                            <div class="w-full bg-slate-900 flex flex-col items-center border-b border-slate-100 overflow-hidden">
                                 <iframe src="${ttEmbedUrl}" class="w-full border-0" style="min-height:740px; max-width:375px;" loading="lazy" allow="encrypted-media" allowfullscreen></iframe>
+                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-slate-400 hover:text-slate-200 py-1.5">Video tidak tampil? Buka di TikTok &rarr;</a>
                             </div>
                         `;
                     } else {
