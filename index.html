@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduGram - Platform Inspirasi Pembelajaran Guru</title>
+    <title>EduGram - Platform Inspirasi Pembelajaran Guru SDNP Tunas Global</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -29,7 +29,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent leading-none">EduGram</h1>
-                    <p class="text-[11px] text-slate-500 font-medium">Inspirasi Pembelajaran Guru</p>
+                    <p class="text-[11px] text-slate-500 font-medium">Inspirasi Pembelajaran Guru SDNP Tunas Global</p>
                 </div>
             </div>
 
@@ -268,38 +268,27 @@
         let currentFilter = 'all';
         let currentSearchQuery = '';
 
-        // Instagram & TikTok tidak mengizinkan iframe biasa (X-Frame-Options).
-        // Cara resmi yang mereka dukung: blockquote khusus + script widget mereka
-        // (embed.js) yang otomatis mengubah blockquote itu menjadi player.
-        // Dua fungsi di bawah ini yang memuat/menjalankan script widget tsb.
+        // Instagram & TikTok tidak mengizinkan iframe biasa untuk URL post
+        // mereka apa adanya (X-Frame-Options), TAPI keduanya menyediakan
+        // endpoint "/embed" resmi yang memang didesain khusus untuk dipasang
+        // langsung di <iframe> pihak lain. Dengan endpoint ini, video/foto
+        // beserta player-nya tampil LANGSUNG di dalam kartu di halaman ini —
+        // guru tidak perlu diarahkan ke tab/jendela baru untuk menontonnya.
 
-        function ensureInstagramEmbedScript() {
-            // Jika script sudah pernah dimuat, cukup minta ia memindai ulang
-            // DOM untuk blockquote baru yang belum diproses.
-            if (window.instgrm && window.instgrm.Embeds) {
-                window.instgrm.Embeds.process();
-                return;
-            }
-            if (document.getElementById('ig-embed-script')) return; // sedang dimuat
-            const script = document.createElement('script');
-            script.id = 'ig-embed-script';
-            script.src = 'https://www.instagram.com/embed.js';
-            script.async = true;
-            document.body.appendChild(script);
+        function getInstagramEmbedUrl(url) {
+            // Menerima URL /p/{shortcode}/, /reel/{shortcode}/, atau /tv/{shortcode}/
+            // lalu mengembalikan URL iframe embed resminya.
+            if (!url) return null;
+            const match = url.trim().match(/instagram\.com\/(?:p|reel|tv)\/([\w-]+)/i);
+            if (!match) return null;
+            return `https://www.instagram.com/p/${match[1]}/embed/captioned/`;
         }
 
-        function ensureTikTokEmbedScript() {
-            // Script TikTok tidak punya API "process ulang" seperti Instagram,
-            // jadi trik yang dipakai banyak orang: hapus lalu pasang lagi
-            // scriptnya setiap kali ada blockquote baru, supaya ia memindai
-            // ulang seluruh DOM.
-            const existing = document.getElementById('tt-embed-script');
-            if (existing) existing.remove();
-            const script = document.createElement('script');
-            script.id = 'tt-embed-script';
-            script.src = 'https://www.tiktok.com/embed.js';
-            script.async = true;
-            document.body.appendChild(script);
+        function getTikTokEmbedUrl(videoId) {
+            // videoId didapat dari getTikTokVideoId(). Endpoint ini adalah
+            // TikTok Embed Player resmi yang boleh dipasang di iframe.
+            if (!videoId) return null;
+            return `https://www.tiktok.com/embed/v2/${videoId}`;
         }
 
         // Konfigurasi Cloudinary untuk upload foto/video dari galeri HP / PC.
@@ -422,24 +411,34 @@
 
                 let mediaHtml = '';
                 if (post.type === 'Instagram') {
-                    // data-instgrm-permalink cukup diisi URL post/reel aslinya,
-                    // tidak perlu ekstraksi ID manual lagi.
-                    mediaHtml = `
-                        <div class="w-full bg-slate-50 flex flex-col items-center py-2 border-b border-slate-100 overflow-hidden min-h-[300px]">
-                            <blockquote class="instagram-media" data-instgrm-permalink="${post.sourceUrl}" data-instgrm-version="14" style="margin:0; width:100%; max-width:540px; min-width:280px;"></blockquote>
-                            <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-indigo-400 hover:text-indigo-600 mt-1">Postingan tidak tampil? Buka di Instagram &rarr;</a>
-                        </div>
-                    `;
+                    const igEmbedUrl = getInstagramEmbedUrl(post.sourceUrl);
+                    if (igEmbedUrl) {
+                        // Endpoint /embed/captioned/ resmi Instagram -> tampil
+                        // langsung sebagai player di dalam iframe, tanpa perlu
+                        // membuka jendela/tab baru.
+                        mediaHtml = `
+                            <div class="w-full bg-slate-50 border-b border-slate-100 overflow-hidden">
+                                <iframe src="${igEmbedUrl}" class="w-full border-0" style="min-height:560px;" loading="lazy" allow="encrypted-media" scrolling="no"></iframe>
+                            </div>
+                        `;
+                    } else {
+                        mediaHtml = `
+                            <div class="w-full bg-slate-900 border-b border-slate-100 p-6 flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+                                <i class="fa-brands fa-instagram text-white text-3xl"></i>
+                                <p class="text-slate-300 text-xs">Format link Instagram ini tidak dikenali sehingga tidak bisa ditampilkan langsung.</p>
+                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-xs font-semibold text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full transition">Buka di Instagram &rarr;</a>
+                            </div>
+                        `;
+                    }
                 } else if (post.type === 'TikTok') {
                     const tiktokVideoId = getTikTokVideoId(post.sourceUrl);
-                    if (tiktokVideoId) {
-                        // Format URL didukung widget resmi -> tampilkan player.
+                    const ttEmbedUrl = getTikTokEmbedUrl(tiktokVideoId);
+                    if (ttEmbedUrl) {
+                        // Endpoint embed/v2 resmi TikTok -> player tampil
+                        // langsung di dalam iframe, tanpa membuka tab baru.
                         mediaHtml = `
-                            <div class="w-full bg-slate-900 flex flex-col items-center py-2 border-b border-slate-100 overflow-hidden min-h-[400px]">
-                                <blockquote class="tiktok-embed" cite="${post.sourceUrl}" data-video-id="${tiktokVideoId}" style="max-width: 375px; min-width: 325px; margin:0;">
-                                    <section></section>
-                                </blockquote>
-                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-slate-400 hover:text-slate-200 mt-1">Video tidak tampil? Buka di TikTok &rarr;</a>
+                            <div class="w-full bg-slate-900 flex items-center justify-center border-b border-slate-100 overflow-hidden">
+                                <iframe src="${ttEmbedUrl}" class="w-full border-0" style="min-height:740px; max-width:375px;" loading="lazy" allow="encrypted-media" allowfullscreen></iframe>
                             </div>
                         `;
                     } else {
@@ -510,13 +509,22 @@
                         </span>
                     </div>
 
+                    <!-- Mata Pelajaran / Tagar & Keterangan (ditampilkan di atas media) -->
+                    <div class="px-4 pt-3 pb-1 space-y-2">
+                        <!-- Hashtags -->
+                        ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
+
+                        <!-- Caption -->
+                        <p class="text-xs text-slate-700 leading-relaxed font-normal">${post.caption || 'Materi & Media Pembelajaran Guru.'}</p>
+                    </div>
+
                     <!-- Card Media -->
                     ${mediaHtml}
 
                     <!-- Card Body -->
                     <div class="p-4 space-y-2.5">
                         <!-- Action Bar -->
-                        <div class="flex items-center justify-between pt-1">
+                        <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-4">
                                 <button class="like-btn flex items-center space-x-1.5 ${isLiked ? 'text-red-500' : 'text-slate-600 hover:text-red-500'} transition" data-id="${post.id}">
                                     <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-lg"></i>
@@ -531,12 +539,6 @@
                                 <i class="fa-solid fa-share-nodes"></i>
                             </button>
                         </div>
-
-                        <!-- Hashtags -->
-                        ${tagsHtml ? `<div class="pt-1">${tagsHtml}</div>` : ''}
-
-                        <!-- Caption -->
-                        <p class="text-xs text-slate-700 leading-relaxed font-normal">${post.caption || 'Materi & Media Pembelajaran Guru.'}</p>
 
                         <!-- Comments Section Container -->
                         <div id="comments-${post.id}" class="hidden pt-3 border-t border-slate-100 space-y-2.5">
@@ -563,15 +565,6 @@
             });
 
             attachCardEventListeners();
-
-            // Minta Instagram/TikTok memproses blockquote yang baru saja
-            // ditambahkan ke DOM supaya berubah jadi player, bukan teks link.
-            if (filtered.some(p => p.type === 'Instagram')) {
-                ensureInstagramEmbedScript();
-            }
-            if (filtered.some(p => p.type === 'TikTok')) {
-                ensureTikTokEmbedScript();
-            }
         }
 
         function attachCardEventListeners() {
