@@ -210,32 +210,62 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import {
+            getFirestore, collection, addDoc, onSnapshot, doc, updateDoc,
+            query, orderBy, serverTimestamp, arrayUnion, arrayRemove, increment
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // Konfigurasi proyek Firebase "edugram-3968a".
+        // apiKey Firebase untuk aplikasi web MEMANG didesain untuk ditempel
+        // di kode client (bukan rahasia seperti password) — yang menjaga
+        // keamanan data sebenarnya adalah Firestore Security Rules yang
+        // diatur di Firebase Console, bukan menyembunyikan apiKey ini.
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdAARZQmH1V-9IQfSUmpGEIZdSEW7LTH8",
+            authDomain: "edugram-3968a.firebaseapp.com",
+            projectId: "edugram-3968a",
+            storageBucket: "edugram-3968a.firebasestorage.app",
+            messagingSenderId: "382612296933",
+            appId: "1:382612296933:web:e5d2ab85555701f201b00c",
+            measurementId: "G-9BKCSNBCB0"
+        };
 
         let db = null;
         let auth = null;
         let isFirebaseActive = false;
+        let postsUnsubscribe = null;
+        // uid sementara dipakai sebelum login anonim selesai; begitu Firebase
+        // Auth siap, uid ini diganti dengan uid asli yang persisten (tersimpan
+        // di browser) supaya status "like" guru tetap konsisten walau
+        // halaman di-refresh.
         let currentUser = { uid: 'guru-guest-' + Math.floor(Math.random() * 100000) };
 
         try {
-            const firebaseConfig = typeof __firebase_config !== 'undefined' 
-                ? JSON.parse(__firebase_config) 
-                : { apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            isFirebaseActive = true;
 
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'demo-key') {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                signInAnonymously(auth).catch(err => console.warn('Anonymous auth fallback:', err));
-                isFirebaseActive = true;
-            }
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser.uid = user.uid;
+                    renderFeed();
+                } else {
+                    signInAnonymously(auth).catch(err => {
+                        console.warn('Login anonim gagal, memakai mode tamu:', err);
+                    });
+                }
+            });
         } catch (err) {
-            console.warn("Firestore running in memory fallback mode:", err);
+            console.warn("Firestore tidak aktif, memakai data contoh di memori:", err);
             isFirebaseActive = false;
         }
 
         // Application State
+        // Dipakai HANYA sebagai fallback kalau koneksi Firebase gagal total
+        // (misal salah config, atau offline). Kalau Firebase aktif, isi
+        // array ini akan langsung ditimpa data asli dari Firestore.
         let posts = [
             {
                 id: 'sample-1',
@@ -351,6 +381,29 @@
                 };
                 xhr.onerror = () => reject(new Error('Koneksi terputus saat mengunggah.'));
                 xhr.send(formData);
+            });
+        }
+
+        function formatPostDate(createdAt) {
+            // createdAt bisa berupa Firestore Timestamp (dari data asli),
+            // string (dari data contoh/fallback), atau null (baru saja
+            // ditulis dan server belum sempat mengisi timestamp-nya).
+            if (!createdAt) return 'Baru saja';
+            if (typeof createdAt === 'string') return createdAt;
+            if (typeof createdAt.toDate === 'function') {
+                return createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            return 'Baru saja';
+        }
+
+        function listenToFirestorePosts() {
+            const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+            postsUnsubscribe = onSnapshot(postsQuery, (snapshot) => {
+                posts = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderFeed();
+            }, (err) => {
+                console.error('Gagal memuat data dari Firestore:', err);
+                showToast('Gagal memuat data dari server, cek koneksi.', false);
             });
         }
 
@@ -511,7 +564,7 @@
                             </div>
                             <div>
                                 <h4 class="text-xs font-bold text-slate-800 leading-tight">${post.author || 'Guru Inspiratif'}</h4>
-                                <p class="text-[10px] text-slate-400">${post.createdAt || 'Baru saja'}</p>
+                                <p class="text-[10px] text-slate-400">${formatPostDate(post.createdAt)}</p>
                             </div>
                         </div>
                         <span class="text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 flex items-center space-x-1">
@@ -589,10 +642,28 @@
         function attachCardEventListeners() {
             // Like Button
             document.querySelectorAll('.like-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const id = btn.getAttribute('data-id');
                     const post = posts.find(p => p.id === id);
-                    if (post) {
+                    if (!post) return;
+
+                    const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+                    const isLiked = likedBy.includes(currentUser.uid);
+
+                    if (isFirebaseActive && db) {
+                        try {
+                            await updateDoc(doc(db, 'posts', id), {
+                                likedBy: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
+                                likesCount: increment(isLiked ? -1 : 1)
+                            });
+                            // Tidak perlu renderFeed() manual di sini — listener
+                            // onSnapshot akan otomatis menangkap perubahan ini
+                            // dan me-render ulang untuk semua guru yang sedang buka halaman.
+                        } catch (err) {
+                            console.error('Gagal menyimpan like:', err);
+                            showToast('Gagal menyimpan like, coba lagi.', false);
+                        }
+                    } else {
                         if (!Array.isArray(post.likedBy)) post.likedBy = [];
                         const idx = post.likedBy.indexOf(currentUser.uid);
                         if (idx > -1) {
@@ -618,21 +689,33 @@
 
             // Send Comment
             document.querySelectorAll('.send-comment-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const id = btn.getAttribute('data-id');
                     const input = document.getElementById(`inputComment-${id}`);
                     const text = input ? input.value.trim() : '';
-                    if (text) {
-                        const post = posts.find(p => p.id === id);
-                        if (post) {
-                            if (!Array.isArray(post.comments)) post.comments = [];
-                            post.comments.push({
-                                author: 'Guru Inspiratif',
-                                text: text
+                    if (!text) return;
+
+                    const post = posts.find(p => p.id === id);
+                    if (!post) return;
+
+                    const newComment = { author: 'Guru Inspiratif', text: text };
+
+                    if (isFirebaseActive && db) {
+                        try {
+                            await updateDoc(doc(db, 'posts', id), {
+                                comments: arrayUnion(newComment)
                             });
-                            renderFeed();
+                            if (input) input.value = '';
                             showToast("Komentar berhasil ditambahkan!");
+                        } catch (err) {
+                            console.error('Gagal menyimpan komentar:', err);
+                            showToast('Gagal menyimpan komentar, coba lagi.', false);
                         }
+                    } else {
+                        if (!Array.isArray(post.comments)) post.comments = [];
+                        post.comments.push(newComment);
+                        renderFeed();
+                        showToast("Komentar berhasil ditambahkan!");
                     }
                 });
             });
@@ -838,21 +921,33 @@
                         });
                     }
 
-                    const newPost = {
-                        id: 'post-' + Date.now(),
+                    const newPostData = {
                         type: type,
                         sourceUrl: sourceUrl,
                         author: author,
                         caption: caption || 'Materi & Media Pembelajaran Guru.',
                         tags: tagsArray,
-                        createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
                         likedBy: [],
                         likesCount: 0,
                         comments: []
                     };
 
-                    posts.unshift(newPost);
-                    renderFeed();
+                    if (isFirebaseActive && db) {
+                        await addDoc(collection(db, 'posts'), {
+                            ...newPostData,
+                            createdAt: serverTimestamp()
+                        });
+                        // renderFeed() akan dipicu otomatis oleh listener onSnapshot
+                        // begitu Firestore mengonfirmasi tulisannya.
+                    } else {
+                        posts.unshift({
+                            id: 'post-' + Date.now(),
+                            ...newPostData,
+                            createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                        });
+                        renderFeed();
+                    }
+
                     uploadForm.reset();
                     resetFileSelection();
                     uploadProgressBox.classList.add('hidden');
@@ -902,7 +997,11 @@
         window.addEventListener('DOMContentLoaded', () => {
             setupModalAndForm();
             setupFiltersAndSearch();
-            renderFeed();
+            if (isFirebaseActive && db) {
+                listenToFirestorePosts();
+            } else {
+                renderFeed();
+            }
         });
     </script>
 </body>
