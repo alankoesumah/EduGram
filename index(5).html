@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduGram - Platform Inspirasi Pembelajaran Guru</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent leading-none">EduGram</h1>
+                    <p class="text-[11px] text-slate-500 font-medium">Inspirasi Pembelajaran Guru</p>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex flex-1 max-w-xs items-center bg-slate-100 rounded-full px-3 py-1.5 border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm mr-2"></i>
+                <input type="text" id="searchInput" placeholder="Cari topik, guru, tagar..." class="bg-transparent text-xs w-full focus:outline-none">
+            </div>
+
+            <!-- Action Button -->
+            <div class="flex items-center space-x-2">
+                <button id="openUploadBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-semibold px-4 py-2.5 rounded-full flex items-center shadow-md shadow-indigo-100 transition active:scale-95">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Bagikan Content
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar -->
+        <div class="px-4 pb-3 md:hidden">
+            <div class="flex items-center bg-slate-100 rounded-full px-3 py-1.5 border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs mr-2"></i>
+                <input type="text" id="mobileSearchInput" placeholder="Cari materi, tagar, guru..." class="bg-transparent text-xs w-full focus:outline-none">
+            </div>
+        </div>
+    </header>
+
+    <!-- Category Filter Bar -->
+    <div class="bg-white border-b border-slate-200 py-2.5 px-4 sticky top-[61px] md:top-[65px] z-30 shadow-xs">
+        <div class="max-w-4xl mx-auto flex items-center space-x-2 overflow-x-auto no-scrollbar">
+            <button class="filter-btn active px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-indigo-600 text-white shadow-xs transition" data-filter="all">
+                <i class="fa-solid fa-border-all mr-1"></i> Semua Media
+            </button>
+            <button class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition" data-filter="Instagram">
+                <i class="fa-brands fa-instagram text-pink-600 mr-1"></i> Instagram Reels
+            </button>
+            <button class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition" data-filter="TikTok">
+                <i class="fa-brands fa-tiktok text-slate-900 mr-1"></i> TikTok
+            </button>
+            <button class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition" data-filter="Foto">
+                <i class="fa-regular fa-image text-emerald-600 mr-1"></i> Foto / Modul
+            </button>
+            <button class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition" data-filter="Video">
+                <i class="fa-brands fa-youtube text-red-600 mr-1"></i> Video YouTube
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-2xl w-full mx-auto px-4 py-6">
+        <!-- Notification Toast -->
+        <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+            <span id="toastMessage">Pesan pemberitahuan</span>
+        </div>
+
+        <!-- Feed Container -->
+        <div id="feedContainer" class="space-y-6">
+            <!-- Loading Spinner Placeholder -->
+            <div class="flex flex-col items-center justify-center py-16 space-y-3">
+                <div class="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-xs text-slate-400 font-medium">Memuat konten inspirasi guru...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-share-nodes text-indigo-600"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Bagikan Inspirasi Pembelajaran</h3>
+                </div>
+                <button id="closeUploadBtn" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Upload Form -->
+            <form id="uploadForm" class="p-5 space-y-4">
+                <!-- Select Media Type -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Pilih Jenis Konten</label>
+                    <div class="grid grid-cols-2 gap-2" id="typeSelector">
+                        <button type="button" class="type-option active border-2 border-indigo-600 bg-indigo-50/50 p-2.5 rounded-xl flex items-center space-x-2 text-xs font-semibold text-indigo-900 transition" data-type="Instagram">
+                            <i class="fa-brands fa-instagram text-pink-600 text-lg"></i>
+                            <span>Instagram Reel / Post</span>
+                        </button>
+                        <button type="button" class="type-option border-2 border-slate-200 p-2.5 rounded-xl flex items-center space-x-2 text-xs font-semibold text-slate-700 hover:border-slate-300 transition" data-type="TikTok">
+                            <i class="fa-brands fa-tiktok text-slate-900 text-lg"></i>
+                            <span>Video TikTok</span>
+                        </button>
+                        <button type="button" class="type-option border-2 border-slate-200 p-2.5 rounded-xl flex items-center space-x-2 text-xs font-semibold text-slate-700 hover:border-slate-300 transition" data-type="Foto">
+                            <i class="fa-regular fa-image text-emerald-600 text-lg"></i>
+                            <span>Foto / Modul</span>
+                        </button>
+                        <button type="button" class="type-option border-2 border-slate-200 p-2.5 rounded-xl flex items-center space-x-2 text-xs font-semibold text-slate-700 hover:border-slate-300 transition" data-type="Video">
+                            <i class="fa-brands fa-youtube text-red-600 text-lg"></i>
+                            <span>YouTube Video</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="selectedType" value="Instagram">
+                </div>
+
+                <!-- Source URL Input -->
+                <div id="dynamicInputGroup">
+                    <label id="inputLabel" class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Tautan Instagram (Reel/Post)</label>
+
+                    <!-- File Upload Section (khusus Foto & Video) -->
+                    <div id="fileUploadSection" class="hidden mb-2">
+                        <input type="file" id="mediaFile" class="hidden" accept="image/*">
+                        <div id="fileDropzone" class="cursor-pointer border-2 border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/40 rounded-xl p-5 flex flex-col items-center justify-center text-center transition">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-indigo-400 mb-1.5"></i>
+                            <p class="text-xs font-semibold text-slate-600" id="fileDropzoneLabel">Klik untuk pilih foto dari Galeri HP / File PC</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Kamera, Galeri, atau File Explorer akan terbuka otomatis</p>
+                        </div>
+                        <div id="filePreview" class="hidden mt-2 items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                            <div class="flex items-center space-x-2 min-w-0">
+                                <img id="filePreviewImg" class="hidden w-9 h-9 rounded-md object-cover flex-shrink-0 border border-slate-200" alt="">
+                                <i id="filePreviewIcon" class="fa-regular fa-file-video text-indigo-600 text-lg"></i>
+                                <span id="filePreviewName" class="text-xs text-slate-700 truncate"></span>
+                            </div>
+                            <button type="button" id="removeFileBtn" class="text-slate-400 hover:text-red-500 text-sm flex-shrink-0 ml-2 w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-2 text-center">— atau tempel link di bawah —</p>
+                    </div>
+
+                    <input type="url" id="mediaSource" placeholder="https://www.instagram.com/reel/..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    <p class="text-[11px] text-slate-400 mt-1" id="inputHelpText">Gunakan URL lengkap post/reels Instagram agar pemutar langsung tampil di aplikasi.</p>
+                </div>
+
+                <!-- Upload Progress (muncul saat mengunggah file) -->
+                <div id="uploadProgressBox" class="hidden">
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div id="uploadProgressBar" class="bg-indigo-600 h-1.5 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1 text-center" id="uploadProgressText">Mengunggah 0%...</p>
+                </div>
+
+                <!-- Subject & Tags Input (Optional) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Mata Pelajaran & Tagar <span class="text-slate-400 font-normal lowercase">(opsional)</span>
+                    </label>
+                    <input type="text" id="postTags" placeholder="Contoh: Matematika, Class4, #KurikulumMerdeka" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    <p class="text-[11px] text-slate-400 mt-1">Pisahkan dengan koma untuk menambahkan beberapa kata kunci.</p>
+                </div>
+
+                <!-- Description Input (Optional) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Keterangan / Rencana Pembelajaran <span class="text-slate-400 font-normal lowercase">(opsional)</span>
+                    </label>
+                    <textarea id="postCaption" rows="3" placeholder="Tuliskan ide pembelajaran, petunjuk penggunaan media, atau pengalaman mengajar..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none"></textarea>
+                </div>
+
+                <!-- Author Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nama / Identitas Guru</label>
+                    <input type="text" id="postAuthor" placeholder="Contoh: Ibu Ani, S.Pd. (SDN 01 Jakarta)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                </div>
+
+                <!-- Action Submit -->
+                <div class="pt-2 flex items-center justify-end space-x-2">
+                    <button type="button" id="cancelUploadBtn" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+                        Batal
+                    </button>
+                    <button type="submit" id="submitPostBtn" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-semibold shadow-md transition active:scale-95 flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-1.5"></i> Publikasikan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        let db = null;
+        let auth = null;
+        let isFirebaseActive = false;
+        let currentUser = { uid: 'guru-guest-' + Math.floor(Math.random() * 100000) };
+
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                ? JSON.parse(__firebase_config) 
+                : { apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
+
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'demo-key') {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                signInAnonymously(auth).catch(err => console.warn('Anonymous auth fallback:', err));
+                isFirebaseActive = true;
+            }
+        } catch (err) {
+            console.warn("Firestore running in memory fallback mode:", err);
+            isFirebaseActive = false;
+        }
+
+        // Application State
+        let posts = [
+            {
+                id: 'sample-1',
+                type: 'Instagram',
+                sourceUrl: 'https://www.instagram.com/p/C3x9M21P4a_/',
+                author: 'Ibu Ratna, S.Pd. (Guru SD)',
+                caption: 'Penggunaan media konkret buah-buahan untuk mengenalkan konsep pecahan dasar matematika pada siswa kelas 3.',
+                tags: ['Matematika', 'Kelas3SD', 'Konkret'],
+                createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+                likedBy: [],
+                likesCount: 18,
+                comments: [
+                    { author: 'Pak Budi', text: 'Sangat menginspirasi bu! Izin terapkan di kelas saya.' }
+                ]
+            },
+            {
+                id: 'sample-2',
+                type: 'Foto',
+                sourceUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800',
+                author: 'Pak Hendra (Guru IPA)',
+                caption: 'Praktikum sains sederhana tentang siklus air menggunakan toples dan es batu.',
+                tags: ['EksperimenSains', 'KurikulumMerdeka'],
+                createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+                likedBy: [],
+                likesCount: 24,
+                comments: []
+            }
+        ];
+
+        let currentFilter = 'all';
+        let currentSearchQuery = '';
+
+        // Instagram & TikTok tidak mengizinkan iframe biasa (X-Frame-Options).
+        // Cara resmi yang mereka dukung: blockquote khusus + script widget mereka
+        // (embed.js) yang otomatis mengubah blockquote itu menjadi player.
+        // Dua fungsi di bawah ini yang memuat/menjalankan script widget tsb.
+
+        function ensureInstagramEmbedScript() {
+            // Jika script sudah pernah dimuat, cukup minta ia memindai ulang
+            // DOM untuk blockquote baru yang belum diproses.
+            if (window.instgrm && window.instgrm.Embeds) {
+                window.instgrm.Embeds.process();
+                return;
+            }
+            if (document.getElementById('ig-embed-script')) return; // sedang dimuat
+            const script = document.createElement('script');
+            script.id = 'ig-embed-script';
+            script.src = 'https://www.instagram.com/embed.js';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+
+        function ensureTikTokEmbedScript() {
+            // Script TikTok tidak punya API "process ulang" seperti Instagram,
+            // jadi trik yang dipakai banyak orang: hapus lalu pasang lagi
+            // scriptnya setiap kali ada blockquote baru, supaya ia memindai
+            // ulang seluruh DOM.
+            const existing = document.getElementById('tt-embed-script');
+            if (existing) existing.remove();
+            const script = document.createElement('script');
+            script.id = 'tt-embed-script';
+            script.src = 'https://www.tiktok.com/embed.js';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+
+        // Konfigurasi Cloudinary untuk upload foto/video dari galeri HP / PC.
+        // PENTING: preset ini SENGAJA dibuat terpisah dari preset "laporansarpras"
+        // (dipakai di Sistem Laporan Sarpras) supaya upload di EduGram tidak ikut
+        // memicu notifikasi Telegram yang terhubung ke preset itu.
+        //
+        // Cara bikin preset ini (sekali saja, lewat browser, tanpa coding):
+        // 1. Buka https://console.cloudinary.com/settings/upload lalu login.
+        // 2. Klik "Add upload preset".
+        // 3. Signing Mode -> pilih "Unsigned".
+        // 4. Preset name -> isi persis: edugram_uploads
+        // 5. Simpan.
+        const CLOUDINARY_CLOUD_NAME = 'zuu5nwf1';
+        const CLOUDINARY_UPLOAD_PRESET = 'edugram_uploads';
+
+        function uploadFileToCloudinary(file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                const xhr = new XMLHttpRequest();
+                // "auto" membiarkan Cloudinary otomatis mendeteksi apakah
+                // filenya gambar atau video, jadi satu endpoint saja cukup.
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`);
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable && onProgress) {
+                        onProgress(Math.round((e.loaded / e.total) * 100));
+                    }
+                });
+
+                xhr.onload = () => {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (xhr.status >= 200 && xhr.status < 300 && data.secure_url) {
+                            resolve(data.secure_url);
+                        } else {
+                            reject(new Error(data.error?.message || 'Upload gagal, coba lagi.'));
+                        }
+                    } catch (err) {
+                        reject(new Error('Respons upload tidak terbaca.'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Koneksi terputus saat mengunggah.'));
+                xhr.send(formData);
+            });
+        }
+
+        function isDirectVideoFile(url) {
+            if (!url) return false;
+            return /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url) || (url.includes('res.cloudinary.com') && url.includes('/video/upload/'));
+        }
+
+        function getTikTokVideoId(url) {
+            // Widget resmi TikTok hanya mau menerima link video LENGKAP,
+            // contoh: https://www.tiktok.com/@user/video/1234567890123456789
+            // Link pendek hasil tombol "Share" di HP (vt.tiktok.com / vm.tiktok.com)
+            // TIDAK didukung dan akan gagal total tanpa pesan error apa pun.
+            if (!url) return null;
+            const match = url.trim().match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/i);
+            return match ? match[1] : null;
+        }
+
+        function getYouTubeEmbedUrl(url) {
+            if (!url) return null;
+            const clean = url.trim();
+            const match = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+            return match && match[1] ? `https://www.youtube.com/embed/${match[1]}` : null;
+        }
+
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            toastMessage.textContent = message;
+            toastIcon.className = isSuccess 
+                ? "fa-solid fa-circle-check text-emerald-400 text-base" 
+                : "fa-solid fa-circle-exclamation text-amber-400 text-base";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function renderFeed() {
+            const feedContainer = document.getElementById('feedContainer');
+            feedContainer.innerHTML = '';
+
+            const filtered = posts.filter(post => {
+                const matchesCategory = currentFilter === 'all' || post.type === currentFilter;
+                const query = currentSearchQuery.toLowerCase();
+                const matchesSearch = !query || 
+                    (post.caption || '').toLowerCase().includes(query) || 
+                    (post.author || '').toLowerCase().includes(query) ||
+                    (post.tags || []).some(t => t.toLowerCase().includes(query));
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="bg-white p-10 rounded-2xl text-center border border-slate-200 shadow-xs">
+                        <i class="fa-solid fa-folder-open text-slate-300 text-4xl mb-3"></i>
+                        <p class="text-slate-600 font-semibold text-sm">Belum ada konten untuk kategori atau kata kunci ini.</p>
+                        <p class="text-xs text-slate-400 mt-1">Jadilah guru pertama yang membagikan inspirasi!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(post => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition hover:shadow-md duration-200";
+
+                let mediaHtml = '';
+                if (post.type === 'Instagram') {
+                    // data-instgrm-permalink cukup diisi URL post/reel aslinya,
+                    // tidak perlu ekstraksi ID manual lagi.
+                    mediaHtml = `
+                        <div class="w-full bg-slate-50 flex flex-col items-center py-2 border-b border-slate-100 overflow-hidden min-h-[300px]">
+                            <blockquote class="instagram-media" data-instgrm-permalink="${post.sourceUrl}" data-instgrm-version="14" style="margin:0; width:100%; max-width:540px; min-width:280px;"></blockquote>
+                            <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-indigo-400 hover:text-indigo-600 mt-1">Postingan tidak tampil? Buka di Instagram &rarr;</a>
+                        </div>
+                    `;
+                } else if (post.type === 'TikTok') {
+                    const tiktokVideoId = getTikTokVideoId(post.sourceUrl);
+                    if (tiktokVideoId) {
+                        // Format URL didukung widget resmi -> tampilkan player.
+                        mediaHtml = `
+                            <div class="w-full bg-slate-900 flex flex-col items-center py-2 border-b border-slate-100 overflow-hidden min-h-[400px]">
+                                <blockquote class="tiktok-embed" cite="${post.sourceUrl}" data-video-id="${tiktokVideoId}" style="max-width: 375px; min-width: 325px; margin:0;">
+                                    <section></section>
+                                </blockquote>
+                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-slate-400 hover:text-slate-200 mt-1">Video tidak tampil? Buka di TikTok &rarr;</a>
+                            </div>
+                        `;
+                    } else {
+                        // Format URL tidak didukung (kemungkinan link pendek
+                        // vt.tiktok.com/vm.tiktok.com) -> widget resmi akan gagal
+                        // total tanpa pesan error, jadi tampilkan kartu fallback
+                        // sendiri supaya tidak kosong melompong.
+                        mediaHtml = `
+                            <div class="w-full bg-slate-900 border-b border-slate-100 p-6 flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+                                <i class="fa-brands fa-tiktok text-white text-3xl"></i>
+                                <p class="text-slate-300 text-xs">Link TikTok ini berupa tautan pendek dan tidak bisa diputar langsung di aplikasi.</p>
+                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-xs font-semibold text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full transition">Buka di TikTok &rarr;</a>
+                            </div>
+                        `;
+                    }
+                } else if (post.type === 'Foto') {
+                    mediaHtml = `
+                        <div class="w-full bg-slate-100 max-h-96 overflow-hidden flex items-center justify-center">
+                            <img src="${post.sourceUrl}" alt="Media Pembelajaran" class="w-full h-auto object-cover max-h-96" onerror="this.src='https://placehold.co/600x400/e2e8f0/475569?text=Gambar+Materi+Guru'">
+                        </div>
+                    `;
+                } else {
+                    if (isDirectVideoFile(post.sourceUrl)) {
+                        mediaHtml = `
+                            <div class="w-full bg-black flex items-center justify-center">
+                                <video controls preload="metadata" class="w-full max-h-[500px]">
+                                    <source src="${post.sourceUrl}">
+                                    Browser Anda tidak mendukung pemutaran video ini.
+                                </video>
+                            </div>
+                        `;
+                    } else {
+                        const embedUrl = getYouTubeEmbedUrl(post.sourceUrl);
+                        if (embedUrl) {
+                            mediaHtml = `
+                                <div class="w-full aspect-video bg-black overflow-hidden">
+                                    <iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                            `;
+                        } else {
+                            mediaHtml = `
+                                <div class="w-full aspect-video bg-slate-900 overflow-hidden">
+                                    <iframe src="${post.sourceUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+
+                const isLiked = Array.isArray(post.likedBy) && post.likedBy.includes(currentUser.uid);
+                const tagsHtml = (post.tags || []).map(t => `<span class="bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2.5 py-0.5 rounded-md mr-1.5 inline-block">#${t.replace(/^#/, '')}</span>`).join('');
+
+                card.innerHTML = `
+                    <!-- Card Header -->
+                    <div class="p-3.5 flex items-center justify-between border-b border-slate-100">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs border border-indigo-200">
+                                ${(post.author || 'G').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800 leading-tight">${post.author || 'Guru Inspiratif'}</h4>
+                                <p class="text-[10px] text-slate-400">${post.createdAt || 'Baru saja'}</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 flex items-center space-x-1">
+                            <i class="${post.type === 'Instagram' ? 'fa-brands fa-instagram text-pink-600' : post.type === 'TikTok' ? 'fa-brands fa-tiktok text-slate-900' : post.type === 'Foto' ? 'fa-regular fa-image text-emerald-600' : 'fa-brands fa-youtube text-red-600'}"></i>
+                            <span>${post.type}</span>
+                        </span>
+                    </div>
+
+                    <!-- Card Media -->
+                    ${mediaHtml}
+
+                    <!-- Card Body -->
+                    <div class="p-4 space-y-2.5">
+                        <!-- Action Bar -->
+                        <div class="flex items-center justify-between pt-1">
+                            <div class="flex items-center space-x-4">
+                                <button class="like-btn flex items-center space-x-1.5 ${isLiked ? 'text-red-500' : 'text-slate-600 hover:text-red-500'} transition" data-id="${post.id}">
+                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-lg"></i>
+                                    <span class="text-xs font-semibold">${post.likesCount || 0}</span>
+                                </button>
+                                <button class="comment-toggle-btn flex items-center space-x-1.5 text-slate-600 hover:text-indigo-600 transition" data-id="${post.id}">
+                                    <i class="fa-regular fa-comment text-lg"></i>
+                                    <span class="text-xs font-semibold">${(post.comments || []).length}</span>
+                                </button>
+                            </div>
+                            <button class="share-btn text-slate-400 hover:text-indigo-600 text-sm transition" data-url="${post.sourceUrl}">
+                                <i class="fa-solid fa-share-nodes"></i>
+                            </button>
+                        </div>
+
+                        <!-- Hashtags -->
+                        ${tagsHtml ? `<div class="pt-1">${tagsHtml}</div>` : ''}
+
+                        <!-- Caption -->
+                        <p class="text-xs text-slate-700 leading-relaxed font-normal">${post.caption || 'Materi & Media Pembelajaran Guru.'}</p>
+
+                        <!-- Comments Section Container -->
+                        <div id="comments-${post.id}" class="hidden pt-3 border-t border-slate-100 space-y-2.5">
+                            <div class="space-y-2 max-h-40 overflow-y-auto no-scrollbar" id="commentList-${post.id}">
+                                ${(post.comments || []).map(c => `
+                                    <div class="bg-slate-50 p-2.5 rounded-xl text-xs">
+                                        <span class="font-bold text-slate-800">${c.author || 'Guru'}:</span> 
+                                        <span class="text-slate-600">${c.text}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <!-- Comment Input -->
+                            <div class="flex space-x-2 pt-1">
+                                <input type="text" id="inputComment-${post.id}" placeholder="Tulis komentar atau apresiasi..." class="flex-1 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                                <button class="send-comment-btn px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-xl hover:bg-indigo-700 transition" data-id="${post.id}">
+                                    Kirim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                feedContainer.appendChild(card);
+            });
+
+            attachCardEventListeners();
+
+            // Minta Instagram/TikTok memproses blockquote yang baru saja
+            // ditambahkan ke DOM supaya berubah jadi player, bukan teks link.
+            if (filtered.some(p => p.type === 'Instagram')) {
+                ensureInstagramEmbedScript();
+            }
+            if (filtered.some(p => p.type === 'TikTok')) {
+                ensureTikTokEmbedScript();
+            }
+        }
+
+        function attachCardEventListeners() {
+            // Like Button
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const post = posts.find(p => p.id === id);
+                    if (post) {
+                        if (!Array.isArray(post.likedBy)) post.likedBy = [];
+                        const idx = post.likedBy.indexOf(currentUser.uid);
+                        if (idx > -1) {
+                            post.likedBy.splice(idx, 1);
+                            post.likesCount = Math.max(0, (post.likesCount || 1) - 1);
+                        } else {
+                            post.likedBy.push(currentUser.uid);
+                            post.likesCount = (post.likesCount || 0) + 1;
+                        }
+                        renderFeed();
+                    }
+                });
+            });
+
+            // Comment Toggle
+            document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const box = document.getElementById(`comments-${id}`);
+                    if (box) box.classList.toggle('hidden');
+                });
+            });
+
+            // Send Comment
+            document.querySelectorAll('.send-comment-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const input = document.getElementById(`inputComment-${id}`);
+                    const text = input ? input.value.trim() : '';
+                    if (text) {
+                        const post = posts.find(p => p.id === id);
+                        if (post) {
+                            if (!Array.isArray(post.comments)) post.comments = [];
+                            post.comments.push({
+                                author: 'Guru Inspiratif',
+                                text: text
+                            });
+                            renderFeed();
+                            showToast("Komentar berhasil ditambahkan!");
+                        }
+                    }
+                });
+            });
+
+            // Share Button
+            document.querySelectorAll('.share-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.getAttribute('data-url');
+                    if (url) {
+                        const tempInput = document.createElement('input');
+                        tempInput.value = url;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                        showToast("Tautan berhasil disalin ke clipboard!");
+                    }
+                });
+            });
+        }
+
+        function setupModalAndForm() {
+            const uploadModal = document.getElementById('uploadModal');
+            const openUploadBtn = document.getElementById('openUploadBtn');
+            const closeUploadBtn = document.getElementById('closeUploadBtn');
+            const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+            const uploadForm = document.getElementById('uploadForm');
+            const submitPostBtn = document.getElementById('submitPostBtn');
+
+            const typeOptions = document.querySelectorAll('.type-option');
+            const selectedTypeInput = document.getElementById('selectedType');
+            const inputLabel = document.getElementById('inputLabel');
+            const mediaSource = document.getElementById('mediaSource');
+            const inputHelpText = document.getElementById('inputHelpText');
+
+            // Elemen-elemen untuk upload file dari galeri HP / drive PC
+            const fileUploadSection = document.getElementById('fileUploadSection');
+            const mediaFile = document.getElementById('mediaFile');
+            const fileDropzone = document.getElementById('fileDropzone');
+            const fileDropzoneLabel = document.getElementById('fileDropzoneLabel');
+            const filePreview = document.getElementById('filePreview');
+            const filePreviewImg = document.getElementById('filePreviewImg');
+            const filePreviewIcon = document.getElementById('filePreviewIcon');
+            const filePreviewName = document.getElementById('filePreviewName');
+            const removeFileBtn = document.getElementById('removeFileBtn');
+            const uploadProgressBox = document.getElementById('uploadProgressBox');
+            const uploadProgressBar = document.getElementById('uploadProgressBar');
+            const uploadProgressText = document.getElementById('uploadProgressText');
+
+            function resetFileSelection() {
+                mediaFile.value = '';
+                filePreview.classList.add('hidden');
+                filePreview.classList.remove('flex');
+                fileDropzone.classList.remove('hidden');
+                filePreviewImg.classList.add('hidden');
+                if (filePreviewImg.src) URL.revokeObjectURL(filePreviewImg.src);
+                filePreviewImg.src = '';
+            }
+
+            // Klik area putus-putus -> buka pemilih file bawaan HP/PC
+            // (di HP otomatis menawarkan pilihan Kamera / Galeri / File)
+            fileDropzone.addEventListener('click', () => mediaFile.click());
+
+            mediaFile.addEventListener('change', () => {
+                const file = mediaFile.files && mediaFile.files[0];
+                if (!file) return;
+
+                filePreviewName.textContent = file.name;
+                fileDropzone.classList.add('hidden');
+                filePreview.classList.remove('hidden');
+                filePreview.classList.add('flex');
+
+                if (file.type.startsWith('image/')) {
+                    filePreviewIcon.classList.add('hidden');
+                    filePreviewImg.classList.remove('hidden');
+                    filePreviewImg.src = URL.createObjectURL(file);
+                } else {
+                    filePreviewImg.classList.add('hidden');
+                    filePreviewIcon.classList.remove('hidden');
+                }
+
+                // File dipilih -> link jadi tidak wajib diisi
+                mediaSource.value = '';
+            });
+
+            removeFileBtn.addEventListener('click', resetFileSelection);
+
+            // Kalau guru mulai mengetik link manual, anggap dia batal upload file
+            mediaSource.addEventListener('focus', () => {
+                if (mediaFile.files && mediaFile.files[0]) resetFileSelection();
+            });
+
+            // Open/Close handlers
+            const openModal = () => uploadModal.classList.remove('hidden');
+            const closeModal = () => uploadModal.classList.add('hidden');
+
+            openUploadBtn.addEventListener('click', openModal);
+            closeUploadBtn.addEventListener('click', closeModal);
+            cancelUploadBtn.addEventListener('click', closeModal);
+
+            // Validasi real-time khusus TikTok: peringatkan kalau link yang
+            // di-paste berupa link pendek (vt.tiktok.com/vm.tiktok.com) yang
+            // tidak akan bisa diputar di dalam aplikasi.
+            mediaSource.addEventListener('input', () => {
+                if (selectedTypeInput.value !== 'TikTok') return;
+                const val = mediaSource.value.trim();
+                if (!val) {
+                    inputHelpText.innerText = "Gunakan URL video TikTok lengkap agar langsung ter-embed di aplikasi.";
+                    inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                    return;
+                }
+                const looksFullFormat = /tiktok\.com\/@[\w.-]+\/video\/\d+/i.test(val);
+                if (looksFullFormat) {
+                    inputHelpText.innerText = "✓ Format link didukung, video akan tampil langsung di aplikasi.";
+                    inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                } else {
+                    inputHelpText.innerText = "⚠ Ini terlihat seperti link pendek. Buka video di TikTok lewat browser, salin URL dari address bar (harus mengandung '/video/angka'), lalu tempel di sini.";
+                    inputHelpText.classList.add('text-amber-500', 'font-semibold');
+                }
+            });
+
+            // Type selector handler
+            typeOptions.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    typeOptions.forEach(o => {
+                        o.classList.remove('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-900');
+                        o.classList.add('border-slate-200', 'text-slate-700');
+                    });
+                    opt.classList.remove('border-slate-200', 'text-slate-700');
+                    opt.classList.add('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-900');
+
+                    const type = opt.getAttribute('data-type');
+                    selectedTypeInput.value = type;
+                    resetFileSelection();
+                    mediaSource.value = '';
+
+                    if (type === 'Instagram') {
+                        fileUploadSection.classList.add('hidden');
+                        inputLabel.innerText = "Tautan Instagram (Reel/Post)";
+                        mediaSource.placeholder = "https://www.instagram.com/reel/... atau /p/...";
+                        inputHelpText.innerText = "Gunakan URL lengkap post/reels Instagram agar pemutar langsung tampil di aplikasi.";
+                        inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                    } else if (type === 'TikTok') {
+                        fileUploadSection.classList.add('hidden');
+                        inputLabel.innerText = "Tautan TikTok";
+                        mediaSource.placeholder = "https://www.tiktok.com/@user/video/7123456789...";
+                        inputHelpText.innerText = "Gunakan URL video TikTok lengkap agar langsung ter-embed di aplikasi.";
+                        inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                    } else if (type === 'Foto') {
+                        fileUploadSection.classList.remove('hidden');
+                        mediaFile.setAttribute('accept', 'image/*');
+                        fileDropzoneLabel.innerText = "Klik untuk pilih foto dari Galeri HP / File PC";
+                        inputLabel.innerText = "Atau, Tautan Gambar (opsional)";
+                        mediaSource.placeholder = "https://images.unsplash.com/... atau URL foto";
+                        inputHelpText.innerText = "Upload langsung dari galeri/kamera, atau tempel link gambar kalau sudah online.";
+                        inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                    } else if (type === 'Video') {
+                        fileUploadSection.classList.remove('hidden');
+                        mediaFile.setAttribute('accept', 'video/*');
+                        fileDropzoneLabel.innerText = "Klik untuk pilih video dari Galeri HP / File PC";
+                        inputLabel.innerText = "Atau, Tautan Video YouTube (opsional)";
+                        mediaSource.placeholder = "https://www.youtube.com/watch?v=... atau /shorts/...";
+                        inputHelpText.innerText = "Upload video langsung dari HP/PC, atau tempel link YouTube.";
+                        inputHelpText.classList.remove('text-amber-500', 'font-semibold');
+                    }
+                });
+            });
+
+            // Form Submit handler
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const type = selectedTypeInput.value;
+                let sourceUrl = mediaSource.value.trim();
+                const file = mediaFile.files && mediaFile.files[0];
+                const rawTags = document.getElementById('postTags').value.trim();
+                const caption = document.getElementById('postCaption').value.trim();
+                const author = document.getElementById('postAuthor').value.trim() || 'Guru Inspiratif';
+                const tagsArray = rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : ['InspirasiGuru'];
+
+                // Validasi manual (karena field link sekarang bersifat opsional
+                // untuk Foto & Video jika sudah ada file yang dipilih)
+                if ((type === 'Instagram' || type === 'TikTok') && !sourceUrl) {
+                    showToast('Mohon isi tautan terlebih dahulu.', false);
+                    return;
+                }
+                if ((type === 'Foto' || type === 'Video') && !file && !sourceUrl) {
+                    showToast('Pilih file untuk diunggah, atau tempel link.', false);
+                    return;
+                }
+
+                const originalBtnHtml = submitPostBtn.innerHTML;
+
+                try {
+                    if (file) {
+                        submitPostBtn.disabled = true;
+                        submitPostBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Mengunggah...';
+                        uploadProgressBox.classList.remove('hidden');
+
+                        sourceUrl = await uploadFileToCloudinary(file, (pct) => {
+                            uploadProgressBar.style.width = pct + '%';
+                            uploadProgressText.textContent = `Mengunggah ${pct}%...`;
+                        });
+                    }
+
+                    const newPost = {
+                        id: 'post-' + Date.now(),
+                        type: type,
+                        sourceUrl: sourceUrl,
+                        author: author,
+                        caption: caption || 'Materi & Media Pembelajaran Guru.',
+                        tags: tagsArray,
+                        createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+                        likedBy: [],
+                        likesCount: 0,
+                        comments: []
+                    };
+
+                    posts.unshift(newPost);
+                    renderFeed();
+                    uploadForm.reset();
+                    resetFileSelection();
+                    uploadProgressBox.classList.add('hidden');
+                    uploadProgressBar.style.width = '0%';
+                    closeModal();
+                    showToast("Berhasil mempublikasikan inspirasi baru!");
+                } catch (err) {
+                    console.error(err);
+                    showToast(err.message || "Gagal mengunggah file. Coba lagi atau gunakan link.", false);
+                    uploadProgressBox.classList.add('hidden');
+                } finally {
+                    submitPostBtn.disabled = false;
+                    submitPostBtn.innerHTML = originalBtnHtml;
+                }
+            });
+        }
+
+        function setupFiltersAndSearch() {
+            // Category Filter Buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
+                        b.classList.add('bg-slate-100', 'text-slate-600');
+                    });
+                    btn.classList.remove('bg-slate-100', 'text-slate-600');
+                    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+
+                    currentFilter = btn.getAttribute('data-filter');
+                    renderFeed();
+                });
+            });
+
+            // Search Inputs
+            const searchInput = document.getElementById('searchInput');
+            const mobileSearchInput = document.getElementById('mobileSearchInput');
+
+            const handleSearch = (e) => {
+                currentSearchQuery = e.target.value;
+                renderFeed();
+            };
+
+            if (searchInput) searchInput.addEventListener('input', handleSearch);
+            if (mobileSearchInput) mobileSearchInput.addEventListener('input', handleSearch);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setupModalAndForm();
+            setupFiltersAndSearch();
+            renderFeed();
+        });
+    </script>
+</body>
+</html>
