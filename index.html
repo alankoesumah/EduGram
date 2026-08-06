@@ -275,20 +275,35 @@
         // beserta player-nya tampil LANGSUNG di dalam kartu di halaman ini —
         // guru tidak perlu diarahkan ke tab/jendela baru untuk menontonnya.
 
-        function getInstagramEmbedUrl(url) {
-            // Menerima URL /p/{shortcode}/, /reel/{shortcode}/, atau /tv/{shortcode}/
-            // lalu mengembalikan URL iframe embed resminya.
-            if (!url) return null;
-            const match = url.trim().match(/instagram\.com\/(?:p|reel|tv)\/([\w-]+)/i);
-            if (!match) return null;
-            return `https://www.instagram.com/p/${match[1]}/embed/captioned/`;
+        // TikTok menyediakan "Embed Player" resmi & terdokumentasi publik
+        // yang memang didesain untuk dipasang langsung di iframe pihak lain:
+        // https://developers.tiktok.com/doc/embed-player
+        // (Endpoint /embed/v2/ yang dipakai sebelumnya adalah endpoint internal
+        // milik widget TikTok sendiri, butuh parameter tersembunyi seperti
+        // referrer & signature — kalau dipanggil langsung sering ditolak diam-diam
+        // dan hasilnya layar hitam kosong tanpa pesan error.)
+        function getTikTokEmbedUrl(videoId) {
+            if (!videoId) return null;
+            return `https://www.tiktok.com/player/v1/${videoId}?music_info=1&description=1`;
         }
 
-        function getTikTokEmbedUrl(videoId) {
-            // videoId didapat dari getTikTokVideoId(). Endpoint ini adalah
-            // TikTok Embed Player resmi yang boleh dipasang di iframe.
-            if (!videoId) return null;
-            return `https://www.tiktok.com/embed/v2/${videoId}`;
+        // Instagram TIDAK punya endpoint iframe publik yang stabil seperti
+        // TikTok. Cara resminya (didokumentasikan Meta) adalah blockquote
+        // <blockquote class="instagram-media"> + script embed.js yang
+        // mengubahnya menjadi player interaktif. Videonya tetap diputar
+        // LANGSUNG di dalam kartu (inline), bukan membuka tab baru — bedanya
+        // hanya cara teknis pemuatannya dibanding iframe biasa.
+        function ensureInstagramEmbedScript() {
+            if (window.instgrm && window.instgrm.Embeds) {
+                window.instgrm.Embeds.process();
+                return;
+            }
+            if (document.getElementById('ig-embed-script')) return;
+            const script = document.createElement('script');
+            script.id = 'ig-embed-script';
+            script.src = 'https://www.instagram.com/embed.js';
+            script.async = true;
+            document.body.appendChild(script);
         }
 
         // Konfigurasi Cloudinary untuk upload foto/video dari galeri HP / PC.
@@ -411,28 +426,15 @@
 
                 let mediaHtml = '';
                 if (post.type === 'Instagram') {
-                    const igEmbedUrl = getInstagramEmbedUrl(post.sourceUrl);
-                    if (igEmbedUrl) {
-                        // Endpoint /embed/captioned/ resmi Instagram -> tampil
-                        // langsung sebagai player di dalam iframe, tanpa perlu
-                        // membuka jendela/tab baru. Tautan cadangan tetap
-                        // disediakan untuk kasus embed gagal memuat (postingan
-                        // private/dihapus, atau cookie pihak ketiga diblokir).
-                        mediaHtml = `
-                            <div class="w-full bg-slate-50 border-b border-slate-100 overflow-hidden flex flex-col items-center">
-                                <iframe src="${igEmbedUrl}" class="w-full border-0" style="min-height:560px;" loading="lazy" allow="encrypted-media" scrolling="no"></iframe>
-                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-indigo-400 hover:text-indigo-600 py-1.5">Postingan tidak tampil? Buka di Instagram &rarr;</a>
-                            </div>
-                        `;
-                    } else {
-                        mediaHtml = `
-                            <div class="w-full bg-slate-900 border-b border-slate-100 p-6 flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
-                                <i class="fa-brands fa-instagram text-white text-3xl"></i>
-                                <p class="text-slate-300 text-xs">Format link Instagram ini tidak dikenali sehingga tidak bisa ditampilkan langsung.</p>
-                                <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-xs font-semibold text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full transition">Buka di Instagram &rarr;</a>
-                            </div>
-                        `;
-                    }
+                    // data-instgrm-permalink cukup diisi URL post/reel aslinya.
+                    // Ini metode resmi Meta -> video tetap tampil & diputar
+                    // langsung di dalam kartu ini (inline), bukan tab baru.
+                    mediaHtml = `
+                        <div class="w-full bg-slate-50 flex flex-col items-center py-2 border-b border-slate-100 overflow-hidden min-h-[300px]">
+                            <blockquote class="instagram-media" data-instgrm-permalink="${post.sourceUrl}" data-instgrm-version="14" style="margin:0; width:100%; max-width:540px; min-width:280px;"></blockquote>
+                            <a href="${post.sourceUrl}" target="_blank" rel="noopener" class="text-[10px] text-indigo-400 hover:text-indigo-600 mt-1">Postingan tidak tampil? Buka di Instagram &rarr;</a>
+                        </div>
+                    `;
                 } else if (post.type === 'TikTok') {
                     const tiktokVideoId = getTikTokVideoId(post.sourceUrl);
                     const ttEmbedUrl = getTikTokEmbedUrl(tiktokVideoId);
@@ -574,6 +576,14 @@
             });
 
             attachCardEventListeners();
+
+            // Instagram butuh script resminya dijalankan ulang supaya
+            // blockquote yang baru ditambahkan ke DOM berubah jadi player.
+            // TikTok tidak perlu ini lagi karena sudah pakai iframe player
+            // resmi (player/v1) yang langsung jalan tanpa script tambahan.
+            if (filtered.some(p => p.type === 'Instagram')) {
+                ensureInstagramEmbedScript();
+            }
         }
 
         function attachCardEventListeners() {
